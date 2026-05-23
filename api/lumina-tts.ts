@@ -7,10 +7,6 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 import { synthesizeMp3ViaElevenLabs } from "../coach/elevenLabsSynthesize";
 
-export const config = {
-  maxDuration: 60,
-};
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     res.status(405).json({ ok: false, error: "Method Not Allowed" });

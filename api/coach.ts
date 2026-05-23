@@ -12,10 +12,6 @@ import {
 } from "../coach/geminiCoach";
 import type { CoachRequestBody } from "../coach/types";
 
-export const config = {
-  maxDuration: 60,
-};
-
 function sendJson(res: VercelResponse, status: number, body: Record<string, unknown>) {
   res.status(status).json(body);
 }
