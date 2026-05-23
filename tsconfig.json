@@ -20,5 +20,5 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src", "coach/**/*.ts", "server/**/*.ts"]
+  "include": ["src", "coach/**/*.ts", "server/**/*.ts", "api/**/*.ts"]
 }

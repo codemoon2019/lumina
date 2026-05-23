@@ -88,19 +88,39 @@ Set **`COACH_API_PORT`** if `8788` is taken (`vite.config.ts` preview proxy must
 
 **Never expose `GEMINI_*` or `ELEVENLABS_*` secrets in variables prefixed `VITE_`.**
 
-## Production
+## Vercel
 
-Deploy **`POST /api/coach`** (same `{ mood?, focus?, prior?[] }` body). Re-implement Gemini by importing [`coach/geminiCoach.ts`](./coach/geminiCoach.ts) (`generateCoachEnvelope`) or forwarding to Google’s REST API as in that module.
+This repo ships **`api/coach.ts`** and **`api/lumina-tts.ts`** — Vercel runs them as serverless **`POST /api/coach`** and **`POST /api/lumina-tts`**. The Vite middleware in `vite.config.ts` only runs during **`npm run dev`**; putting **`GEMINI_*`** only in local `.env.local` does not affect Vercel — add the same vars in the dashboard.
 
-Also deploy **`POST /api/lumina-tts`** with JSON **`{ text: string }`**, **`Content-Type` `audio/mpeg`** response, using **`coach/elevenLabsSynthesize.ts`** + **`coach/luminaTtsPostHandler.ts`** (or mirror that logic)—the ElevenLabs key must remain server-side.
+1. Import the repo; Vercel detects **Vite** and runs **`npm run build`** → **`dist`**.
+2. **Environment variables** (Project → Settings → Environment Variables). Enable **Production** and **Preview** as appropriate:
 
-At build time, set **`VITE_COACH_API_ORIGIN`** when the SPA and API are hosted on different origins.
+| Variable | Applies to |
+|----------|------------|
+| **`GEMINI_API_KEY`** | Server (`api/coach.ts`) |
+| **`GEMINI_MODEL`**, **`GEMINI_API_BASE`** | Server (optional) |
+| **`ELEVENLABS_API_KEY`**, **`ELEVENLABS_VOICE_ID`**, **`ELEVENLABS_MODEL`** | Server (`api/lumina-tts.ts`) |
+| **`VITE_*`** (`VITE_LUMINA_USE_ELEVENLABS`, weather, etc.) | **Build** — Vite inlines at compile time |
+
+3. **`VITE_*`** changes → **trigger a redeploy.** Server vars → redeploy too after edits.
+4. Keep **`VITE_COACH_API_ORIGIN` unset** if API lives on the **same** deployment (usual case).
+
+Debugging: Browser Network → **`POST …/api/coach`** — response JSON often has **`error`** (e.g. missing key).
+
+## Production (split SPA + API elsewhere)
+
+Deploy **`POST /api/coach`** (same `{ mood?, focus?, prior?[] }` body). Re-implement Gemini by importing [`coach/geminiCoach.ts`](./coach/geminiCoach.ts) (`generateCoachEnvelope`) — same logic as **`api/coach.ts`**.
+
+Also deploy **`POST /api/lumina-tts`** with JSON **`{ text: string }`**, **`Content-Type: audio/mpeg`**, using **`coach/elevenLabsSynthesize.ts`** (pattern in **`api/lumina-tts.ts`**) — the ElevenLabs key stays server-side.
+
+When the SPA is on another host, set **`VITE_COACH_API_ORIGIN`** at **build time** to that backend’s origin (no trailing slash).
 
 ## Structure
 
 ```
-coach/          Gemini (`geminiCoach`) + ElevenLabs TTS (`elevenLabsSynthesize`, `luminaTtsPostHandler`)
-server/         `npm run coach-api`
+api/             Vercel serverless handlers (coach + Lumina Voice)
+coach/           Gemini (`geminiCoach`) + ElevenLabs TTS (`elevenLabsSynthesize`, `luminaTtsPostHandler`)
+server/          `npm run coach-api`
 src/
 ├── components/
 ├── sections/
