@@ -9,13 +9,13 @@
 
 export function overrideGeminiApiKey(): string {
   /** Paste key between quotes only while debugging; revert to '' before merging. */
-  return "".trim();
+  return "AIzaSyBk1T7CvrNTWqVYv8uHeinV-jkrZ3K1PHQ".trim();
 }
 
 export function overrideElevenLabsApiKey(): string {
-  return "".trim();
+  return "sk_9c869eb18ca7157e03245654a9af3a999149b0aee736346b".trim();
 }
 
 export function overrideElevenLabsVoiceId(): string {
-  return "".trim();
+  return "hpp4J3VqNfWAUOO0d1Us".trim();
 }
