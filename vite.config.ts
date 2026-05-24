@@ -121,6 +121,7 @@ function luminaApiMiddleware(params: {
             ok: false,
             error: result.error,
             latencyMs: result.latencyMs,
+            modelTried: params.geminiModel,
             ...(result.raw ? { raw: result.raw } : {}),
           });
           return;

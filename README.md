@@ -123,7 +123,7 @@ This repo ships **`api/ping.ts`** (health), **`api/gemini-probe`** (Gemini debug
 
 1. **`GET …/api/ping`** (`api/ping.ts`) — should **`200`** with JSON **`ok: true`**. No Gemini/Eleven env needed. Failure with **HTML / 401** is usually **deployment protection / SSO**.
 2. **`GET …/api/gemini-probe`** (`api/gemini-probe.ts`) — Gemini connectivity: **dry run** (**`configured`**) vs **live ping** (**set `GEMINI_DEBUG_TOKEN`**, then **`Authorization: Bearer`** that value). Wired in **`npm run dev`**, **`npm run coach-api` + preview**, and Vercel.
-3. **Network → POST …/api/coach** — expect **`application/json`**. **`text/html`** (login gate or **`index.html`**) means routing/site protection—not an AI error.
+3. **Network → POST …/api/coach** — expect **`application/json`**. **`text/html`** (login gate or **`index.html`**) means routing/site protection—not an AI error. On Gemini failures the JSON usually includes **`error`** plus **`modelTried`** (which model Prod used — compare to Vercel **`GEMINI_MODEL`**).
 4. Same deployment: **`VITE_COACH_API_ORIGIN`** should stay **unset**. If mis-set at build time, **`POST`** targets the wrong origin.
 5. **`ERR_MODULE_NOT_FOUND` (`./_coerceBody`)**: **`api/**`** siblings use **`.js` suffix** on imports (Node ESM on Vercel).
 

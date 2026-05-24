@@ -61,6 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ok: false,
         error: result.error,
         latencyMs: result.latencyMs,
+        modelTried: geminiModel,
         ...(result.raw ? { raw: result.raw } : {}),
       });
       return;

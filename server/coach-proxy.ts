@@ -122,6 +122,7 @@ createServer(async (req, resp) => {
         ok: false,
         error: result.error,
         latencyMs: result.latencyMs,
+        modelTried: geminiModel,
         ...(result.raw ? { raw: result.raw } : {}),
       });
       return;
