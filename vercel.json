@@ -1,8 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "api/coach.ts": { "maxDuration": 60 },
-    "api/lumina-tts.ts": { "maxDuration": 60 }
+    "api/coach.ts": {
+      "maxDuration": 60,
+      "includeFiles": "coach/**"
+    },
+    "api/lumina-tts.ts": {
+      "maxDuration": 60,
+      "includeFiles": "coach/**"
+    }
   },
   "rewrites": [
     {

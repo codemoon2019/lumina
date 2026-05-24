@@ -111,6 +111,8 @@ This repo ships **`api/coach.ts`** and **`api/lumina-tts.ts`** — Vercel runs t
 
 Debugging: Browser **Network → POST …/api/coach**. If response is HTML, routing is wrong. If JSON with **`error`**, read the message (upstream model, quota, missing key).
 
+If Vercel shows **`FUNCTION_INVOCATION_FAILED`**, open **Deployments → [that deploy] → Logs** (Functions) right after reproducing. Handlers return **`500` JSON** with **`error`** plus **`console.error`** tags **`[api/coach]`** / **`[api/lumina-tts]`**. **`vercel.json`** sets **`includeFiles`** so the **`coach/`** folder is bundled with each serverless function (avoids silent missing-module invokes).
+
 ## Production (split SPA + API elsewhere)
 
 Deploy **`POST /api/coach`** (same `{ mood?, focus?, prior?[] }` body). Re-implement Gemini by importing [`coach/geminiCoach.ts`](./coach/geminiCoach.ts) (`generateCoachEnvelope`) — same logic as **`api/coach.ts`**.
