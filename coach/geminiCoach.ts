@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
 
-import type { CoachEnvelope, CoachRequestBody } from "./types";
+import type { CoachEnvelope, CoachRequestBody } from "./types.js";
 
 import {
   DEFAULT_LUMINA_DISPLAY_TIME_ZONE,
   formatLuminaLocalTimestamp,
   resolveLuminaDisplayTimeZone,
-} from "./luminaDisplayTimeZone";
+} from "./luminaDisplayTimeZone.js";
 
 export type CoachGenerateResult =
   | { ok: true; data: CoachEnvelope; latencyMs: number }

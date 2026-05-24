@@ -12,7 +12,7 @@ import {
   GEMINI_REST_DEFAULT_BASE,
   generateCoachEnvelope,
 } from "../coach/geminiCoach.js";
-import type { CoachRequestBody } from "../coach/types";
+import type { CoachRequestBody } from "../coach/types.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {

@@ -4,7 +4,7 @@
 
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-import { synthesizeMp3ViaElevenLabs } from "./elevenLabsSynthesize";
+import { synthesizeMp3ViaElevenLabs } from "./elevenLabsSynthesize.js";
 
 async function readBodyRaw(req: IncomingMessage): Promise<Buffer> {
   const chunks: Buffer[] = [];
