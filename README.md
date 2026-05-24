@@ -144,7 +144,8 @@ src/
 |---------|-------------|
 | `npm run dev` | Vite + **`/api/coach`** / **`/api/lumina-tts`** middleware (`GEMINI_*`, `ELEVENLABS_*`) |
 | `npm run coach-api` | Sidecar for `vite preview` |
-| `npm run build` | Production build |
+| `npm run check-env` | Validate `.env.example` vs canonical keys + no server env / key-shaped literals in `src/` |
+| `npm run build` | Runs **`check-env`** then TypeScript + Vite production build |
 | `npm run preview` | Preview static app (run **`coach-api`**) |
 
 ## Optional widgets
