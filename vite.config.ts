@@ -6,6 +6,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { defineConfig, loadEnv } from "vite";
 
 import { DEFAULT_GEMINI_MODEL, GEMINI_REST_DEFAULT_BASE, generateCoachEnvelope } from "./coach/geminiCoach";
+import { resolveGeminiProbeGet } from "./coach/geminiProbe";
 import { respondLuminaTtsPost } from "./coach/luminaTtsPostHandler";
 import type { CoachRequestBody } from "./coach/types";
 
@@ -39,10 +40,31 @@ function luminaApiMiddleware(params: {
   elevenLabsApiKey: string | undefined;
   elevenLabsVoiceId: string | undefined;
   elevenLabsModelId: string | undefined;
+  geminiDebugToken: string | undefined;
 }): import("vite").Plugin["configureServer"] {
   return function configureServer(server) {
     server.middlewares.use(async (req, res, next) => {
       const pathname = (req.url?.split("?")[0] ?? "/").replace(/\/$/, "") || "/";
+
+      if (pathname === "/api/gemini-probe" && req.method === "GET") {
+        try {
+          const auth =
+            typeof req.headers.authorization === "string" ? req.headers.authorization : undefined;
+          const { statusCode, json } = await resolveGeminiProbeGet({
+            method: "GET",
+            authorizationHeader: auth,
+            apiKey: params.geminiApiKey?.trim(),
+            geminiApiBase: params.geminiApiBase,
+            geminiModel: params.geminiModel,
+            debugToken: params.geminiDebugToken?.trim(),
+          });
+          send(res, statusCode, json as Record<string, unknown>);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          send(res, 500, { ok: false, error: msg });
+        }
+        return;
+      }
 
       if (pathname === "/api/lumina-tts" && req.method === "POST") {
         try {
@@ -107,6 +129,7 @@ export default defineConfig(({ mode }) => {
   const elevenLabsApiKey = env.ELEVENLABS_API_KEY;
   const elevenLabsVoiceId = env.ELEVENLABS_VOICE_ID;
   const elevenLabsModelId = env.ELEVENLABS_MODEL?.trim();
+  const geminiDebugToken = env.GEMINI_DEBUG_TOKEN?.trim();
 
   return {
     /** Stable port + fail if busy — avoids a second mystery Vite on :5174 and 504 “Outdated Request” tabs. */
@@ -125,6 +148,7 @@ export default defineConfig(({ mode }) => {
           elevenLabsApiKey,
           elevenLabsVoiceId,
           elevenLabsModelId,
+          geminiDebugToken,
         }),
       },
     ],
@@ -138,6 +162,10 @@ export default defineConfig(({ mode }) => {
       port: 4173,
       proxy: {
         "/api/coach": {
+          target: `http://127.0.0.1:${env.COACH_API_PORT ?? "8788"}`,
+          changeOrigin: true,
+        },
+        "/api/gemini-probe": {
           target: `http://127.0.0.1:${env.COACH_API_PORT ?? "8788"}`,
           changeOrigin: true,
         },

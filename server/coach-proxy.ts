@@ -7,6 +7,7 @@ import { createServer } from "node:http";
 import dotenv from "dotenv";
 
 import { generateCoachEnvelope, DEFAULT_GEMINI_MODEL, GEMINI_REST_DEFAULT_BASE } from "../coach/geminiCoach";
+import { resolveGeminiProbeGet } from "../coach/geminiProbe";
 import type { CoachRequestBody } from "../coach/types";
 import { respondLuminaTtsPost } from "../coach/luminaTtsPostHandler";
 
@@ -43,6 +44,21 @@ function sendJson(resp: import("node:http").ServerResponse, status: number, body
 
 createServer(async (req, resp) => {
   const pathname = (req.url?.split("?")[0] ?? "/").replace(/\/$/, "") || "/";
+
+  if (pathname === "/api/gemini-probe" && req.method === "GET") {
+    const authHeader =
+      typeof req.headers.authorization === "string" ? req.headers.authorization : undefined;
+    const { statusCode, json } = await resolveGeminiProbeGet({
+      method: "GET",
+      authorizationHeader: authHeader,
+      apiKey: geminiApiKey?.trim(),
+      geminiApiBase,
+      geminiModel,
+      debugToken: process.env.GEMINI_DEBUG_TOKEN?.trim(),
+    });
+    sendJson(resp, statusCode, json);
+    return;
+  }
 
   if (pathname === "/api/lumina-tts") {
     if (req.method !== "POST") {
@@ -104,6 +120,6 @@ createServer(async (req, resp) => {
   }
 }).listen(PORT, "127.0.0.1", () => {
   console.info(
-    `[lumina-coach-api] http://127.0.0.1:${PORT} — POST /api/coach, POST /api/lumina-tts`,
+    `[lumina-coach-api] http://127.0.0.1:${PORT} — POST /api/coach, POST /api/lumina-tts, GET /api/gemini-probe`,
   );
 });

@@ -8,6 +8,10 @@
     "api/lumina-tts.ts": {
       "maxDuration": 60,
       "includeFiles": "coach/**"
+    },
+    "api/gemini-probe.ts": {
+      "maxDuration": 30,
+      "includeFiles": "coach/**"
     }
   },
   "rewrites": [

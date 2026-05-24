@@ -67,6 +67,8 @@ Set **`COACH_API_PORT`** if `8788` is taken (`vite.config.ts` preview proxy must
 
 ## Env reference
 
+**Not Next.js:** this app is **Vite + `/api/coach`** on Vercel. Do **not** use **`NEXT_PUBLIC_*`** env names (they imply Next export and/or client exposure); the server reads **`GEMINI_API_KEY`** only (`api/coach.ts`).
+
 ### Browser (`VITE_*` — safe for CDN; never put `GEMINI_API_KEY`)
 
 | Variable | Purpose |
@@ -81,6 +83,7 @@ Set **`COACH_API_PORT`** if `8788` is taken (`vite.config.ts` preview proxy must
 | `GEMINI_API_KEY` | **[Required](https://ai.google.dev/gemini-api/docs)** — AI Studio API key (`AIza…`) |
 | `GEMINI_API_BASE` | Default `https://generativelanguage.googleapis.com` |
 | `GEMINI_MODEL` | Default **`gemini-3.1-flash-lite`** (Flash‑Lite) |
+| `GEMINI_DEBUG_TOKEN` | Optional — when set, **`GET /api/gemini-probe`** requires **`Authorization: Bearer <GEMINI_DEBUG_TOKEN>`** before running a minimal live Gemini request (uses quota). If unset, the endpoint only reports whether a key appears configured (**no Gemini call**) |
 | `COACH_API_PORT` | Sidecar (`coach-api`), default **8788** |
 | `ELEVENLABS_API_KEY` | ElevenLabs — **never** use a `VITE_*` prefix; required for **`/api/lumina-tts`** |
 | `ELEVENLABS_VOICE_ID` | Voice preset from ElevenLabs dashboard (`POST /text-to-speech`) |
@@ -90,28 +93,38 @@ Set **`COACH_API_PORT`** if `8788` is taken (`vite.config.ts` preview proxy must
 
 ## Vercel
 
-This repo ships **`api/coach.ts`** and **`api/lumina-tts.ts`** — Vercel runs them as serverless **`POST /api/coach`** and **`POST /api/lumina-tts`**. The Vite middleware in `vite.config.ts` only runs during **`npm run dev`**; server secrets must live in the Vercel dashboard (Production / Preview).
+This repo ships **`api/ping.ts`** (health), **`api/gemini-probe`** (Gemini debugger), **`api/coach.ts`**, and **`api/lumina-tts.ts`** — Vercel runs **`GET`** / **`POST`** handlers under **`/api/*`**. Production **`Gemini`/Eleven** calls hit **`POST /api/coach`** and **`POST /api/lumina-tts`**; the Vite middleware in `vite.config.ts` only applies during **`npm run dev`**; server secrets belong in the Vercel dashboard (Production / Preview).
 
 1. Import the repo; Vercel detects **Vite** and runs **`npm run build`** → **`dist`**.
-2. Confirm the deploy picked up **`api/`**: open **Deployments → [latest] → Functions**. You should see **`api/coach`** and **`api/lumina-tts`**. If not, redeploy after pulling the repo that contains `api/` (wrong **Root Directory** in monorepos also hides them).
-3. **`vercel.json`** SPA rewrite ignores paths under **`/api/*`** (`/((?!api/).*)`) so **`POST /api/coach`** reaches Functions instead of returning **`index.html`**.
-4. **Environment variables** (Project → Settings → Environment Variables). Enable **Production** and **Preview** as appropriate:
+2. Confirm **`api/`**: **Deployments → [latest] → Functions** should list **`api/ping`**, **`api/gemini-probe`**, **`api/coach`**, **`api/lumina-tts`**. If not, redeploy after pulling **`api/`** (wrong **Root Directory** hides them).
+3. **Smoke-test routing** (browser or `curl`): **`GET https://YOUR_DEPLOY.vercel.app/api/ping`** should return **`200`** JSON **`{ "ok": true, … }`** (see **`api/ping.ts`**). If you get **`401`/HTML**, that’s usually **deployment protection / SSO**, not Lumina—the SPA **`POST /api/coach`** will fail for the same reason until you authenticate or loosen protection on previews.
+4. **`vercel.json`** SPA rewrite ignores paths under **`/api/*`** (`/((?!api/).*)`) so **`POST /api/coach`** reaches Functions instead of returning **`index.html`**.
+5. **Environment variables** (Project → Settings → Environment Variables). Enable **Production** and **Preview** as appropriate:
 
 | Variable | Applies to |
 |----------|------------|
 | **`GEMINI_API_KEY`** | Server (`api/coach.ts`) |
 | **`GEMINI_MODEL`**, **`GEMINI_API_BASE`** | Server (optional) |
+| **`GEMINI_DEBUG_TOKEN`** | Server (optional **`GET /api/gemini-probe`** bearer gate — see Env reference) |
 | **`ELEVENLABS_API_KEY`**, **`ELEVENLABS_VOICE_ID`**, **`ELEVENLABS_MODEL`** | Server (`api/lumina-tts.ts`) |
 | **`VITE_*`** (`VITE_LUMINA_USE_ELEVENLABS`, weather, etc.) | **Build** — Vite inlines at compile time |
 
 **Keeping `.env.local` aligned with Vercel:** Copy names and values **as-is** from [`.env.example`](./.env.example) — the dashboard uses **identical** keys (e.g. `GEMINI_API_KEY`, not something else Google shows in their UI). **Do not hardcode secrets** in the repo or in `vite.config`; `GEMINI_*` / `ELEVENLABS_*` must stay in `.env.local` locally and Vercel server env remotely. Optionally run **`vercel link`** then **`vercel env pull .env.local`** so your machine mirrors what is configured in Vercel (combine with `--environment=preview|production|development` as needed).
 
-5. **`VITE_*`** changes → **trigger a redeploy.** Server vars (`GEMINI_*`, `ELEVENLABS_*`) → redeploy too after edits.
-6. Keep **`VITE_COACH_API_ORIGIN` unset** if API lives on the **same** deployment (usual case).
+6. **`VITE_*`** changes → **trigger a redeploy.** Server vars (`GEMINI_*`, `ELEVENLABS_*`) → redeploy too after edits.
+7. Keep **`VITE_COACH_API_ORIGIN` unset** if API lives on the **same** deployment (usual case).
 
 **Tips:** Use **`VITE_LUMINA_USE_ELEVENLABS` = `1`** (or `true`) with **no stray quotes.** If Gemini errors mention the model name, temporarily **remove `GEMINI_MODEL`** in Vercel and redeploy so the repo default is used.
 
 **Rare “is env bound?” check:** edit **`api/_ephemeralCredOverride.ts`** — only the **quoted return values there** temporarily override **`GEMINI_*` / `ELEVENLABS_*`** (override wins when non-empty, then **`process.env`**). The committed file stays **blank** by default (`""`). Clear it and redeploy after testing; **rotate any key that ever lived in source**.
+
+**Debugging APIs on Vercel**
+
+1. **`GET …/api/ping`** (`api/ping.ts`) — should **`200`** with JSON **`ok: true`**. No Gemini/Eleven env needed. Failure with **HTML / 401** is usually **deployment protection / SSO**.
+2. **`GET …/api/gemini-probe`** (`api/gemini-probe.ts`) — Gemini connectivity: **dry run** (**`configured`**) vs **live ping** (**set `GEMINI_DEBUG_TOKEN`**, then **`Authorization: Bearer`** that value). Wired in **`npm run dev`**, **`npm run coach-api` + preview**, and Vercel.
+3. **Network → POST …/api/coach** — expect **`application/json`**. **`text/html`** (login gate or **`index.html`**) means routing/site protection—not an AI error.
+4. Same deployment: **`VITE_COACH_API_ORIGIN`** should stay **unset**. If mis-set at build time, **`POST`** targets the wrong origin.
+5. **`ERR_MODULE_NOT_FOUND` (`./_coerceBody`)**: **`api/**`** siblings use **`.js` suffix** on imports (Node ESM on Vercel).
 
 Serverless **`api/coach`** and **`api/lumina-tts`** reply with plain **`statusCode` + `setHeader` + `end(...)`** (see **`api/_respond.ts`**) so responses don’t depend on Express-style **`res.json()`** patching on **`VercelResponse`**.
 
@@ -128,8 +141,8 @@ When the SPA is on another host, set **`VITE_COACH_API_ORIGIN`** at **build time
 ## Structure
 
 ```
-api/             Vercel serverless handlers (coach + Lumina Voice)
-coach/           Gemini (`geminiCoach`) + ElevenLabs TTS (`elevenLabsSynthesize`, `luminaTtsPostHandler`)
+api/             serverless (`ping`, `gemini-probe`, coach, Lumina Voice)
+coach/           Gemini (`geminiCoach`, `geminiProbe`) + ElevenLabs TTS (`elevenLabsSynthesize`, `luminaTtsPostHandler`)
 server/          `npm run coach-api`
 src/
 ├── components/
