@@ -3,6 +3,10 @@ import { useCallback } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { RiSparklingLine, RiVolumeUpLine } from "react-icons/ri";
 
+import {
+  LuminaSpeakingEchoRipples,
+  luminaSpeakingEchoBreathMotion,
+} from "@/components/ambient/LuminaSpeakingEchoChrome";
 import { useLuminaSpeaking } from "@/hooks/useLuminaSpeaking";
 import { mergeCoachDisplayLines } from "@/utils/luminaIntro";
 import {
@@ -44,6 +48,10 @@ const itemVariants = (reduceMotion: boolean) => ({
       },
 });
 
+/** Matches hero glass outer radius (echo ripples reuse this exactly). */
+const ROUND_SHELL =
+  "rounded-[1.85rem] sm:rounded-[2.35rem] [@media(min-height:900px)]:lg:rounded-[3rem]";
+
 /** Hero “today’s message” card — Gemini greeting + motivation merge into **one** reading moment
  * so the hero never feels like two stacked broadcasts. */
 export function HeroSection({
@@ -71,14 +79,28 @@ export function HeroSection({
   const isDualSource = !!(headline.trim() && supportText);
   const iv = itemVariants(Boolean(reduceMotion));
 
+  const borderAccent =
+    luminaSpeaking && reduceMotion
+      ? "border-teal-400/45 dark:border-teal-400/28"
+      : "border-rose-100/55 dark:border-violet-400/25";
+
+  const showEchoRipples = luminaSpeaking && !reduceMotion;
+  const echoBreath = luminaSpeakingEchoBreathMotion(showEchoRipples);
+
   return (
-    <motion.section layout className="relative z-10 mx-auto w-full max-w-6xl">
-      <div
-        className="relative overflow-hidden rounded-[1.85rem] border border-rose-100/55 bg-[linear-gradient(135deg,rgba(255,255,255,0.86),rgba(253,246,251,0.55))] p-px shadow-[0_26px_80px_-34px_rgba(139,92,246,0.42),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-3xl sm:rounded-[2.35rem] [@media(min-height:900px)]:lg:rounded-[3rem]
-          dark:border-violet-400/25 dark:bg-[linear-gradient(145deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] dark:shadow-[0_32px_100px_-38px_rgba(124,58,237,0.45),inset_0_1px_0_rgba(255,255,255,0.1)]"
-      >
+    /** `pb-*` stays on section, not inner echo root: ripples are `absolute` and ignore flow — inner `pb-*` only stretches the halo past the shell. */
+    <motion.section layout className="relative z-10 mx-auto w-full max-w-6xl overflow-visible pb-11">
+      <div className="relative overflow-visible">
+        <LuminaSpeakingEchoRipples show={showEchoRipples} roundClassName={ROUND_SHELL} />
+
+        <motion.div
+          layout
+          className={`relative z-[1] overflow-hidden border bg-[linear-gradient(135deg,rgba(255,255,255,0.86),rgba(253,246,251,0.55))] p-px shadow-[0_26px_80px_-34px_rgba(139,92,246,0.42),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-3xl dark:bg-[linear-gradient(145deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] dark:shadow-[0_32px_100px_-38px_rgba(124,58,237,0.45),inset_0_1px_0_rgba(255,255,255,0.1)] ${ROUND_SHELL} ${borderAccent}`}
+          animate={echoBreath.animate}
+          transition={echoBreath.transition}
+        >
         <div
-          className="rounded-[calc(1.85rem-1px)] bg-gradient-to-br from-rose-50/93 via-[#faf6ff]/98 to-teal-50/86 px-5 py-6 dark:from-[#1a1428]/98 dark:via-[#0d101f]/98 dark:to-[#0a1822]/96 sm:rounded-[calc(2.35rem-1px)] sm:px-7 sm:py-8 md:px-9 md:py-9 [@media(min-height:900px)]:lg:rounded-[calc(3rem-1px)] [@media(min-height:900px)]:lg:px-10 [@media(min-height:900px)]:lg:py-11"
+          className="relative z-[2] rounded-[calc(1.85rem-1px)] bg-gradient-to-br from-rose-50/93 via-[#faf6ff]/98 to-teal-50/86 px-5 py-6 dark:from-[#1a1428]/98 dark:via-[#0d101f]/98 dark:to-[#0a1822]/96 sm:rounded-[calc(2.35rem-1px)] sm:px-7 sm:py-8 md:px-9 md:py-9 [@media(min-height:900px)]:lg:rounded-[calc(3rem-1px)] [@media(min-height:900px)]:lg:px-10 [@media(min-height:900px)]:lg:py-11"
         >
           <div className="pointer-events-none absolute -right-[18%] -top-[10%] h-[24rem] w-[26rem] rounded-full bg-[radial-gradient(circle,rgba(244,173,226,0.35)_0%,rgba(237,217,255,0.22)_42%,transparent_72%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(167,139,250,0.22)_0%,rgba(99,102,241,0.08)_45%,transparent_72%)]" />
           <div className="pointer-events-none absolute -bottom-[12%] -left-[14%] h-[20rem] w-[21rem] rounded-full bg-[radial-gradient(circle,rgba(191,239,229,0.55)_0%,transparent_68%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(45,212,191,0.16)_0%,rgba(34,211,238,0.06)_40%,transparent_70%)]" />
@@ -162,6 +184,7 @@ export function HeroSection({
             ) : null}
           </motion.div>
         </div>
+        </motion.div>
       </div>
     </motion.section>
   );

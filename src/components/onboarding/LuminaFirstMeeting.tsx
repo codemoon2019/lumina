@@ -1,7 +1,11 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { AiFillHeart } from "react-icons/ai";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
+import {
+  LuminaSpeakingEchoRipples,
+  luminaSpeakingEchoBreathMotion,
+} from "@/components/ambient/LuminaSpeakingEchoChrome";
 import { onboardingFirstStepSpeech, onboardingPurposeSpeechChunks } from "@/data/onboardingSpeech";
 import { useLuminaSpeaking } from "@/hooks/useLuminaSpeaking";
 import { sanitizePreferredName } from "@/utils/luminaIntro";
@@ -20,6 +24,10 @@ interface LuminaFirstMeetingProps {
 
 export function LuminaFirstMeeting({ onFinish }: LuminaFirstMeetingProps) {
   const luminaSpeaking = useLuminaSpeaking();
+  const reduceMotion = useReducedMotion();
+  const showSpeakingEcho = luminaSpeaking && !reduceMotion;
+  const speakingEchoBreath = luminaSpeakingEchoBreathMotion(showSpeakingEcho);
+
   const [step, setStep] = useState<Step>("name");
   /** One deliberate tap/button press first — satisfies browser voice unlock + skips mystery “silent” reloads */
   const [primerDone, setPrimerDone] = useState(false);
@@ -137,14 +145,26 @@ export function LuminaFirstMeeting({ onFinish }: LuminaFirstMeetingProps) {
             ? "lumina-intro-desc"
             : "lumina-intro-primer-desc"
       }
-      className="relative z-[80] mx-auto mt-[-1rem] w-full max-w-lg px-5 sm:mt-0"
+      className="relative z-[80] mx-auto mt-[-1rem] w-full max-w-lg overflow-visible px-5 pb-6 sm:mt-0 sm:pb-0"
     >
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="relative rounded-[2.25rem] border border-violet-200/60 bg-white/90 px-8 pb-10 pt-14 shadow-soft backdrop-blur-2xl dark:border-white/14 dark:bg-[rgba(14,18,38,0.88)] md:px-10 md:pb-12 md:pt-16"
+        /** No bottom padding here: echoes are absolutely positioned and would stretch with `pb-*`, misaligning the halo vs the glass card — use outer margin toward the footer instead. */
+        className="relative mb-10 overflow-visible"
       >
+        <LuminaSpeakingEchoRipples show={showSpeakingEcho} roundClassName="rounded-[2.25rem]" />
+
+        <motion.div
+          animate={speakingEchoBreath.animate}
+          transition={speakingEchoBreath.transition}
+          className={`relative z-[1] rounded-[2.25rem] border bg-white/90 px-8 pb-10 pt-14 shadow-soft backdrop-blur-2xl dark:bg-[rgba(14,18,38,0.88)] md:px-10 md:pb-12 md:pt-16 ${
+            luminaSpeaking && reduceMotion
+              ? "border-teal-400/48 dark:border-teal-400/32"
+              : "border-violet-200/60 dark:border-white/14"
+          }`}
+        >
         <AnimatePresence mode="wait">
           {!primerDone ? (
             <motion.div
@@ -284,6 +304,7 @@ export function LuminaFirstMeeting({ onFinish }: LuminaFirstMeetingProps) {
             </motion.div>
           )}
         </AnimatePresence>
+        </motion.div>
       </motion.div>
       <p className="mt-6 flex flex-wrap items-center justify-center gap-x-1.5 pb-1 text-center text-[0.8rem] font-medium leading-tight text-slate-600 dark:text-white/[0.88] sm:mt-8">
         <span>Crafted with</span>

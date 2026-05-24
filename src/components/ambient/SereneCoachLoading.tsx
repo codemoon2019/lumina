@@ -169,14 +169,18 @@ export function SereneCoachLoading() {
         </motion.p>
       </div>
 
-      {/* Indeterminate bar — taller, wider, bolder */}
-      <div className="relative h-[5px] w-full max-w-sm overflow-hidden rounded-full bg-violet-200/70 shadow-inner dark:bg-white/14">
+      {/* Indeterminate bar — track matches caption width; thumb sweeps true full line (40% wide → left 0%..60% covers 0–100%). */}
+      <div className="relative h-[5px] w-full max-w-xl overflow-hidden rounded-full bg-violet-200/70 shadow-inner dark:bg-white/14">
         <motion.div
           className="absolute inset-y-0 w-2/5 rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-teal-400 shadow-[0_0_20px_rgba(139,92,246,0.45)] dark:from-violet-400 dark:via-fuchsia-400 dark:to-cyan-300 dark:shadow-[0_0_24px_rgba(167,139,250,0.4)]"
           animate={
             reduceMotion
-              ? { left: "20%" }
-              : { left: ["-15%", "35%", "-15%"], opacity: [0.65, 1, 0.65] }
+              ? { left: "30%" }
+              : {
+                  /** -40%: leading edge off-screen left; 62%: trailing edge just past end for a soft “exit” */
+                  left: ["-40%", "62%", "-40%"],
+                  opacity: [0.65, 1, 0.65],
+                }
           }
           transition={
             reduceMotion
