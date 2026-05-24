@@ -104,6 +104,8 @@ This repo ships **`api/coach.ts`** and **`api/lumina-tts.ts`** — Vercel runs t
 | **`ELEVENLABS_API_KEY`**, **`ELEVENLABS_VOICE_ID`**, **`ELEVENLABS_MODEL`** | Server (`api/lumina-tts.ts`) |
 | **`VITE_*`** (`VITE_LUMINA_USE_ELEVENLABS`, weather, etc.) | **Build** — Vite inlines at compile time |
 
+**Keeping `.env.local` aligned with Vercel:** Copy names and values **as-is** from [`.env.example`](./.env.example) — the dashboard uses **identical** keys (e.g. `GEMINI_API_KEY`, not something else Google shows in their UI). **Do not hardcode secrets** in the repo or in `vite.config`; `GEMINI_*` / `ELEVENLABS_*` must stay in `.env.local` locally and Vercel server env remotely. Optionally run **`vercel link`** then **`vercel env pull .env.local`** so your machine mirrors what is configured in Vercel (combine with `--environment=preview|production|development` as needed).
+
 5. **`VITE_*`** changes → **trigger a redeploy.** Server vars (`GEMINI_*`, `ELEVENLABS_*`) → redeploy too after edits.
 6. Keep **`VITE_COACH_API_ORIGIN` unset** if API lives on the **same** deployment (usual case).
 

@@ -10,8 +10,9 @@ import { generateCoachEnvelope, DEFAULT_GEMINI_MODEL, GEMINI_REST_DEFAULT_BASE }
 import type { CoachRequestBody } from "../coach/types";
 import { respondLuminaTtsPost } from "../coach/luminaTtsPostHandler";
 
-dotenv.config({ path: ".env.local" });
+/** `.env.local` overrides `.env` — same precedence idea as Vite `loadEnv` */
 dotenv.config({ path: ".env" });
+dotenv.config({ path: ".env.local" });
 
 const PORT = Number(process.env.COACH_API_PORT) || 8788;
 
