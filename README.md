@@ -90,10 +90,12 @@ Set **`COACH_API_PORT`** if `8788` is taken (`vite.config.ts` preview proxy must
 
 ## Vercel
 
-This repo ships **`api/coach.ts`** and **`api/lumina-tts.ts`** — Vercel runs them as serverless **`POST /api/coach`** and **`POST /api/lumina-tts`**. The Vite middleware in `vite.config.ts` only runs during **`npm run dev`**; putting **`GEMINI_*`** only in local `.env.local` does not affect Vercel — add the same vars in the dashboard.
+This repo ships **`api/coach.ts`** and **`api/lumina-tts.ts`** — Vercel runs them as serverless **`POST /api/coach`** and **`POST /api/lumina-tts`**. The Vite middleware in `vite.config.ts` only runs during **`npm run dev`**; server secrets must live in the Vercel dashboard (Production / Preview).
 
 1. Import the repo; Vercel detects **Vite** and runs **`npm run build`** → **`dist`**.
-2. **Environment variables** (Project → Settings → Environment Variables). Enable **Production** and **Preview** as appropriate:
+2. Confirm the deploy picked up **`api/`**: open **Deployments → [latest] → Functions**. You should see **`api/coach`** and **`api/lumina-tts`**. If not, redeploy after pulling the repo that contains `api/` (wrong **Root Directory** in monorepos also hides them).
+3. **`vercel.json`** puts **`handle: filesystem` before** the SPA fallback so **`/api/*`** resolves to Functions instead of returning **`index.html`** (easy to mistake for “API not working”).
+4. **Environment variables** (Project → Settings → Environment Variables). Enable **Production** and **Preview** as appropriate:
 
 | Variable | Applies to |
 |----------|------------|
@@ -102,10 +104,12 @@ This repo ships **`api/coach.ts`** and **`api/lumina-tts.ts`** — Vercel runs t
 | **`ELEVENLABS_API_KEY`**, **`ELEVENLABS_VOICE_ID`**, **`ELEVENLABS_MODEL`** | Server (`api/lumina-tts.ts`) |
 | **`VITE_*`** (`VITE_LUMINA_USE_ELEVENLABS`, weather, etc.) | **Build** — Vite inlines at compile time |
 
-3. **`VITE_*`** changes → **trigger a redeploy.** Server vars → redeploy too after edits.
-4. Keep **`VITE_COACH_API_ORIGIN` unset** if API lives on the **same** deployment (usual case).
+5. **`VITE_*`** changes → **trigger a redeploy.** Server vars (`GEMINI_*`, `ELEVENLABS_*`) → redeploy too after edits.
+6. Keep **`VITE_COACH_API_ORIGIN` unset** if API lives on the **same** deployment (usual case).
 
-Debugging: Browser Network → **`POST …/api/coach`** — response JSON often has **`error`** (e.g. missing key).
+**Tips:** Use **`VITE_LUMINA_USE_ELEVENLABS` = `1`** (or `true`) with **no stray quotes.** If Gemini errors mention the model name, temporarily **remove `GEMINI_MODEL`** in Vercel and redeploy so the repo default is used.
+
+Debugging: Browser **Network → POST …/api/coach**. If response is HTML, routing is wrong. If JSON with **`error`**, read the message (upstream model, quota, missing key).
 
 ## Production (split SPA + API elsewhere)
 
