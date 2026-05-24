@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { RiSparklingLine, RiVolumeUpLine } from "react-icons/ri";
 
+import { useLuminaSpeaking } from "@/hooks/useLuminaSpeaking";
 import { mergeCoachDisplayLines } from "@/utils/luminaIntro";
 import {
   cancelLuminaSpeech,
@@ -55,6 +56,7 @@ export function HeroSection({
   coachLoading = false,
 }: HeroSectionProps) {
   const reduceMotion = useReducedMotion();
+  const luminaSpeaking = useLuminaSpeaking();
   const supportText = subline?.trim() ?? "";
   const mergedNote = mergeCoachDisplayLines(headline, supportText, preferredName).trim();
   const hasNote = !!mergedNote;
@@ -133,7 +135,7 @@ export function HeroSection({
                 <button
                   type="button"
                   aria-label="Hear Lumina read this message aloud"
-                  disabled={coachLoading}
+                  disabled={coachLoading || luminaSpeaking}
                   onClick={onHearLuminaVoice}
                   className="inline-flex min-h-[2.875rem] w-full cursor-pointer flex-wrap items-center justify-center gap-2 rounded-full border border-violet-300/55 bg-gradient-to-r from-white/92 via-teal-50/75 to-white/92 px-5 py-2.5 text-[0.8rem] font-semibold uppercase tracking-[0.2em] text-violet-900 shadow-soft transition hover:border-violet-400/85 hover:bg-white disabled:pointer-events-none disabled:opacity-50 dark:border-white/16 dark:from-[#1c1830]/90 dark:via-teal-950/35 dark:to-[#141028]/92 dark:text-violet-100 dark:hover:bg-white/[0.08] sm:w-auto [@media(min-height:900px)]:tracking-[0.22em]"
                 >

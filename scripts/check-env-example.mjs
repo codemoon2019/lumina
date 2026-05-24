@@ -4,7 +4,7 @@
  * 1. `.env.example` documents canonical keys (parity with README / Vercel).
  * 2. `src/**` — no server-only env leaks via `import.meta.env` / `process.env`,
  *    no Gemini key-shaped literals.
- * 3. `api/*.ts` (except `_ephemeralCredOverride.ts`) — no Gemini-shaped literals (ephemeral debug file is excluded intentionally).
+ * 3. `api/*.ts` — no Gemini-shaped literals (use `GEMINI_*` in env only).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -15,7 +15,6 @@ const ROOT = path.resolve(__dirname, "..");
 const ENV_EXAMPLE = path.join(ROOT, ".env.example");
 const SRC = path.join(ROOT, "src");
 const API_DIR = path.join(ROOT, "api");
-const EPHEMERAL_CRED_FILE = "_ephemeralCredOverride.ts";
 
 /** Uncommented assignments expected in `.env.example` — extend when adding entries there. */
 const REQUIRED_ENV_EXAMPLE_KEYS = [
@@ -88,7 +87,7 @@ function checkProcessEnv(name, file, errs) {
 function checkApiSecretsFile(relPath, text, errs) {
   if (GEMINI_KEY_LIKE.test(text)) {
     errs.push(
-      `${relPath}: possible hardcoded Gemini \`AIza...\` API key substring — remove and use GEMINI_* in Vercel or \`api/_ephemeralCredOverride.ts\` (temporary only).`,
+      `${relPath}: possible hardcoded Gemini \`AIza...\` API key substring — remove and use GEMINI_* in Vercel / .env only.`,
     );
   }
 }
@@ -142,8 +141,6 @@ function main() {
       .map((n) => path.join(API_DIR, n));
 
     for (const abs of apiTs) {
-      const base = path.basename(abs);
-      if (base === EPHEMERAL_CRED_FILE) continue;
       checkApiSecretsFile(path.relative(ROOT, abs), fs.readFileSync(abs, "utf8"), errs);
     }
   }

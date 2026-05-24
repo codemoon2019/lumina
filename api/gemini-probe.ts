@@ -6,7 +6,6 @@
  */
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-import { overrideGeminiApiKey } from "./_ephemeralCredOverride.js";
 import { jsonResponse } from "./_respond.js";
 import { resolveGeminiProbeGet } from "../coach/geminiProbe.js";
 import { DEFAULT_GEMINI_MODEL, GEMINI_REST_DEFAULT_BASE } from "../coach/geminiCoach.js";
@@ -18,7 +17,7 @@ function authHeader(req: VercelRequest): string | undefined {
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   try {
-    const apiKey = overrideGeminiApiKey() || process.env.GEMINI_API_KEY?.trim();
+    const apiKey = process.env.GEMINI_API_KEY?.trim();
     const rawBase = process.env.GEMINI_API_BASE?.trim();
     const geminiApiBase = rawBase ? rawBase.replace(/\/$/, "") : GEMINI_REST_DEFAULT_BASE;
     const geminiModel = process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;

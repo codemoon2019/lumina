@@ -358,6 +358,38 @@ function createUtterance(
 /** Bumps whenever playback is invalidated so stale ElevenLabs fallbacks cannot double-speak */
 let luminaSpeakEpoch = 0;
 
+const LUMINA_SPEAKING_OWNER_NEURAL = "neural";
+const LUMINA_SPEAKING_OWNER_BROWSER = "browser";
+
+const luminaSpeakingOwners = new Set<string>();
+
+let luminaSpeakingSnapshot = false;
+
+const luminaSpeakingSubscribers = new Set<(speaking: boolean) => void>();
+
+function publishLuminaSpeaking(): void {
+  const next = luminaSpeakingOwners.size > 0;
+  if (next === luminaSpeakingSnapshot) return;
+  luminaSpeakingSnapshot = next;
+  for (const fn of luminaSpeakingSubscribers) {
+    try {
+      fn(next);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+/** Mirrors whether neural MP3 or Web Speech synthesis is actively outputting Lumina voice. */
+export function getLuminaSpeaking(): boolean {
+  return luminaSpeakingSnapshot;
+}
+
+export function subscribeLuminaSpeaking(listener: (speaking: boolean) => void): () => void {
+  luminaSpeakingSubscribers.add(listener);
+  return () => luminaSpeakingSubscribers.delete(listener);
+}
+
 /** In-flight neural fetch cancelled on `cancelLuminaSpeech` */
 let neuralFetchAbort: AbortController | null = null;
 
@@ -443,6 +475,9 @@ function revokeNeuralAudio(): void {
     /* ignore */
   }
   neuralAudioElement = null;
+
+  luminaSpeakingOwners.delete(LUMINA_SPEAKING_OWNER_NEURAL);
+  publishLuminaSpeaking();
 }
 
 /** Join phrase chunks with blank lines — ElevenLabs reads it as softer paragraph pauses */
@@ -559,6 +594,10 @@ async function playElevenLabsUtterance(fullText: string, epochCaptured: number):
         if (reported) return;
         reported = true;
         cancelStall();
+        if (ok) {
+          luminaSpeakingOwners.add(LUMINA_SPEAKING_OWNER_NEURAL);
+          publishLuminaSpeaking();
+        }
         resolve(ok);
       };
 
@@ -624,6 +663,9 @@ export function cancelLuminaSpeech(): void {
 
   luminaSpeakEpoch++;
 
+  luminaSpeakingOwners.clear();
+  publishLuminaSpeaking();
+
   neuralFetchAbort?.abort();
   neuralFetchAbort = null;
 
@@ -658,6 +700,8 @@ async function speakBrowserPhrasesWithPausesAsync(
     const timer = window.setTimeout(() => {
       if (!settled) {
         settled = true;
+        luminaSpeakingOwners.delete(LUMINA_SPEAKING_OWNER_BROWSER);
+        publishLuminaSpeaking();
         resolve(sawStart);
       }
     }, START_WATCH_MS);
@@ -672,10 +716,14 @@ async function speakBrowserPhrasesWithPausesAsync(
 
     const speakAt = (i: number) => {
       if (!window.speechSynthesis) {
+        luminaSpeakingOwners.delete(LUMINA_SPEAKING_OWNER_BROWSER);
+        publishLuminaSpeaking();
         finalizeStart();
         return;
       }
       if (i >= cleaned.length) {
+        luminaSpeakingOwners.delete(LUMINA_SPEAKING_OWNER_BROWSER);
+        publishLuminaSpeaking();
         finalizeStart();
         return;
       }
@@ -693,6 +741,8 @@ async function speakBrowserPhrasesWithPausesAsync(
       }
       u.onstart = () => {
         sawStart = true;
+        luminaSpeakingOwners.add(LUMINA_SPEAKING_OWNER_BROWSER);
+        publishLuminaSpeaking();
         if (!settled) {
           settled = true;
           window.clearTimeout(timer);

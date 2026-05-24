@@ -3,6 +3,7 @@ import { AiFillHeart } from "react-icons/ai";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { onboardingFirstStepSpeech, onboardingPurposeSpeechChunks } from "@/data/onboardingSpeech";
+import { useLuminaSpeaking } from "@/hooks/useLuminaSpeaking";
 import { sanitizePreferredName } from "@/utils/luminaIntro";
 import {
   cancelLuminaSpeech,
@@ -18,6 +19,7 @@ interface LuminaFirstMeetingProps {
 }
 
 export function LuminaFirstMeeting({ onFinish }: LuminaFirstMeetingProps) {
+  const luminaSpeaking = useLuminaSpeaking();
   const [step, setStep] = useState<Step>("name");
   /** One deliberate tap/button press first — satisfies browser voice unlock + skips mystery “silent” reloads */
   const [primerDone, setPrimerDone] = useState(false);
@@ -223,7 +225,8 @@ export function LuminaFirstMeeting({ onFinish }: LuminaFirstMeetingProps) {
                 />
                 <button
                   type="submit"
-                  className="inline-flex min-h-[2.875rem] w-full items-center justify-center rounded-full bg-gradient-to-br from-violet-500 via-purple-600 to-teal-500 px-8 text-[0.95rem] font-semibold text-white shadow-[0_12px_32px_-8px_rgba(91,73,217,0.45)] transition hover:opacity-[0.95] active:scale-[0.99] dark:from-indigo-600 dark:to-teal-500"
+                  disabled={luminaSpeaking}
+                  className="inline-flex min-h-[2.875rem] w-full items-center justify-center rounded-full bg-gradient-to-br from-violet-500 via-purple-600 to-teal-500 px-8 text-[0.95rem] font-semibold text-white shadow-[0_12px_32px_-8px_rgba(91,73,217,0.45)] transition hover:opacity-[0.95] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-55 dark:from-indigo-600 dark:to-teal-500"
                 >
                   That&apos;s my name →
                 </button>
@@ -272,7 +275,8 @@ export function LuminaFirstMeeting({ onFinish }: LuminaFirstMeetingProps) {
               </div>
               <button
                 type="button"
-                className="mt-10 inline-flex min-h-[2.875rem] w-full items-center justify-center rounded-full border border-transparent bg-gradient-to-br from-teal-500 via-emerald-500 to-teal-600 px-8 text-[0.95rem] font-semibold text-white shadow-[0_12px_32px_-8px_rgba(20,184,166,0.45)] transition hover:opacity-[0.95] active:scale-[0.99] dark:from-teal-500 dark:via-teal-400 dark:to-cyan-500"
+                disabled={luminaSpeaking}
+                className="mt-10 inline-flex min-h-[2.875rem] w-full items-center justify-center rounded-full border border-transparent bg-gradient-to-br from-teal-500 via-emerald-500 to-teal-600 px-8 text-[0.95rem] font-semibold text-white shadow-[0_12px_32px_-8px_rgba(20,184,166,0.45)] transition hover:opacity-[0.95] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-55 dark:from-teal-500 dark:via-teal-400 dark:to-cyan-500"
                 onClick={handlePurposeContinue}
               >
                 Continue into Lumina
