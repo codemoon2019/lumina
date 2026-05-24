@@ -31,7 +31,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ok: false,
         error:
           "Missing GEMINI_API_KEY on the server. In Vercel: Project Settings → Environment Variables → add GEMINI_API_KEY for Production & Preview (and redeploy).",
+        ...(typeof process.env.VERCEL !== "undefined"
+          ? {
+              diagnostics: {
+                vercelRuntime: true,
+                vercelEnv: process.env.VERCEL_ENV ?? "(unset)",
+                tip: "Ensure GEMINI_API_KEY is enabled for the environment that matches this deploy (Production vs Preview vs Development). Redeploy after saving variables.",
+              },
+            }
+          : {}),
       });
+      console.warn("[api/coach] missing GEMINI_API_KEY", process.env.VERCEL_ENV ?? "(non-vercel)");
       return;
     }
 
