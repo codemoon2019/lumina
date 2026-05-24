@@ -41,6 +41,7 @@ function luminaApiMiddleware(params: {
   elevenLabsVoiceId: string | undefined;
   elevenLabsModelId: string | undefined;
   geminiDebugToken: string | undefined;
+  luminaDisplayTimeZone: string | undefined;
 }): import("vite").Plugin["configureServer"] {
   return function configureServer(server) {
     server.middlewares.use(async (req, res, next) => {
@@ -93,12 +94,26 @@ function luminaApiMiddleware(params: {
         }
 
         const bodyUnknown = await parseJsonBody(req);
-        const body = bodyUnknown as CoachRequestBody;
+        const o = bodyUnknown as Record<string, unknown>;
+        const body: CoachRequestBody = {
+          mood: typeof o.mood === "string" ? o.mood : "",
+          focus: typeof o.focus === "string" ? o.focus : "",
+          preferredName:
+            typeof o.preferredName === "string" ? o.preferredName : undefined,
+          prior: Array.isArray(o.prior)
+            ? o.prior.filter((p): p is string => typeof p === "string")
+            : [],
+          timeZone:
+            typeof o.timeZone === "string" && o.timeZone.trim()
+              ? o.timeZone.trim().slice(0, 120)
+              : undefined,
+        };
 
         const result = await generateCoachEnvelope(body, {
           apiKey: params.geminiApiKey,
           apiBase: params.geminiApiBase,
           model: params.geminiModel,
+          displayTimeZone: params.luminaDisplayTimeZone,
         });
 
         if (!result.ok) {
@@ -121,7 +136,13 @@ function luminaApiMiddleware(params: {
 }
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), ["GEMINI_", "COACH_", "VITE_", "ELEVENLABS_"]);
+  const env = loadEnv(mode, process.cwd(), [
+    "GEMINI_",
+    "COACH_",
+    "VITE_",
+    "ELEVENLABS_",
+    "LUMINA_",
+  ]);
   const geminiApiKey = env.GEMINI_API_KEY;
   const rawBase = env.GEMINI_API_BASE?.trim();
   const geminiApiBase = rawBase ? rawBase.replace(/\/$/, "") : GEMINI_REST_DEFAULT_BASE;
@@ -130,6 +151,7 @@ export default defineConfig(({ mode }) => {
   const elevenLabsVoiceId = env.ELEVENLABS_VOICE_ID;
   const elevenLabsModelId = env.ELEVENLABS_MODEL?.trim();
   const geminiDebugToken = env.GEMINI_DEBUG_TOKEN?.trim();
+  const luminaDisplayTimeZone = env.LUMINA_DISPLAY_TIME_ZONE?.trim();
 
   return {
     /** Stable port + fail if busy — avoids a second mystery Vite on :5174 and 504 “Outdated Request” tabs. */
@@ -149,6 +171,7 @@ export default defineConfig(({ mode }) => {
           elevenLabsVoiceId,
           elevenLabsModelId,
           geminiDebugToken,
+          luminaDisplayTimeZone,
         }),
       },
     ],

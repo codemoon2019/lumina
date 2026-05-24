@@ -36,6 +36,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const raw = coerceJsonRecord(req.body) ?? {};
+    const tzRaw =
+      typeof raw.timeZone === "string" && raw.timeZone.trim() ? raw.timeZone.trim().slice(0, 120) : undefined;
     const body: CoachRequestBody = {
       mood: typeof raw.mood === "string" ? raw.mood : "",
       focus: typeof raw.focus === "string" ? raw.focus : "",
@@ -44,12 +46,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       prior: Array.isArray(raw.prior)
         ? raw.prior.filter((p): p is string => typeof p === "string")
         : [],
+      timeZone: tzRaw,
     };
 
     const result = await generateCoachEnvelope(body, {
       apiKey: geminiApiKey,
       apiBase: geminiApiBase,
       model: geminiModel,
+      displayTimeZone: process.env.LUMINA_DISPLAY_TIME_ZONE?.trim(),
     });
 
     if (!result.ok) {

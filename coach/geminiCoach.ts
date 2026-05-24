@@ -2,6 +2,12 @@ import { randomUUID } from "node:crypto";
 
 import type { CoachEnvelope, CoachRequestBody } from "./types";
 
+import {
+  DEFAULT_LUMINA_DISPLAY_TIME_ZONE,
+  formatLuminaLocalTimestamp,
+  resolveLuminaDisplayTimeZone,
+} from "./luminaDisplayTimeZone";
+
 export type CoachGenerateResult =
   | { ok: true; data: CoachEnvelope; latencyMs: number }
   | {
@@ -88,8 +94,18 @@ function normalizeCoachEnvelope(envelope: CoachEnvelope, preferredName?: string)
   return out;
 }
 
-function buildSystemPrompt(body: CoachRequestBody): string {
+function buildSystemPrompt(body: CoachRequestBody, displayTimeZone: string): string {
   const name = typeof body.preferredName === "string" ? body.preferredName.trim() : "";
+  const timeAnchor =
+    displayTimeZone === DEFAULT_LUMINA_DISPLAY_TIME_ZONE
+      ? "### Local daypart (Philippines · critical) ###\n" +
+        "The user reads Lumina **in Philippine time**. Use **only** `" +
+        DEFAULT_LUMINA_DISPLAY_TIME_ZONE +
+        "` timestamps from the client for morning / afternoon / evening / night / \"late\". " +
+        "Do **not** assume US nighttime when their local stamp is midday; avoid \"it's late tonight\" mismatch. When uncertain, prefer **time-neutral** comfort."
+      : "### Local daypart ###\n" +
+        `The user's local timezone is **${displayTimeZone}**. Use only the timestamps the client sends for daypart wording; avoid assuming US hours. Prefer time-neutral phrasing if ambiguous.`;
+
   const directive = name
     ? `Naturally include exact name "${name}" in greeting, affirmation, productivityTip, and gratitudePrompt—not optional there. Across **greeting + motivation**, use "${name}" at most ONCE spelled (virtually always in greeting only); motivation is you/your after that.`
     : "";
@@ -160,6 +176,7 @@ function buildSystemPrompt(body: CoachRequestBody): string {
 
   return [
     luminaVoice,
+    timeAnchor,
     "These JSON snippets are ALL the user reads aloud—stay concrete, humane, restrained.",
     nameBlock,
     body.mood ? `User mood keyword (honor softly, without theatrics): "${body.mood}".` : "",
@@ -201,30 +218,109 @@ function geminiUpstreamErrorLine(body: string): string | null {
   }
 }
 
+/** Strip ```json fences and leading noise some models emit even when responseMimeType is JSON */
+function stripModelJsonFence(raw: string): string {
+  let s = raw.trim();
+  const full = /^```(?:json)?\s*\r?\n?([\s\S]*?)\r?\n?```$/i.exec(s);
+  if (full) return full[1].trim();
+  if (s.startsWith("```")) {
+    s = s.replace(/^```(?:json)?\s*\r?\n?/i, "");
+    const j = s.lastIndexOf("```");
+    if (j !== -1) s = s.slice(0, j);
+    return s.trim();
+  }
+  return s;
+}
+
+/** First top-level `{ ... }` slice with naive string escape handling — survives preamble like "Here is the JSON:\n{" */
+function extractFirstJsonObject(raw: string): string | null {
+  const start = raw.indexOf("{");
+  if (start < 0) return null;
+  let depth = 0;
+  let inStr = false;
+  let esc = false;
+  for (let i = start; i < raw.length; i++) {
+    const c = raw[i];
+    if (inStr) {
+      if (esc) {
+        esc = false;
+        continue;
+      }
+      if (c === "\\") {
+        esc = true;
+        continue;
+      }
+      if (c === '"') inStr = false;
+      continue;
+    }
+    if (c === '"') {
+      inStr = true;
+      continue;
+    }
+    if (c === "{") depth += 1;
+    else if (c === "}") {
+      depth -= 1;
+      if (depth === 0) return raw.slice(start, i + 1);
+    }
+  }
+  return null;
+}
+
+function tryParseJsonObject(raw: string): unknown | null {
+  const stripped = stripModelJsonFence(raw);
+  try {
+    return JSON.parse(stripped) as unknown;
+  } catch {
+    const slice = extractFirstJsonObject(stripped);
+    if (!slice) return null;
+    try {
+      return JSON.parse(slice) as unknown;
+    } catch {
+      return null;
+    }
+  }
+}
+
+function envelopeFromParsedObject(inner: Record<string, unknown>): CoachEnvelope {
+  const pick = (camel: string, ...snakes: string[]) => {
+    const keys = [camel, ...snakes];
+    for (const k of keys) {
+      const v = inner[k];
+      if (typeof v === "string") return v;
+    }
+    return "";
+  };
+
+  return {
+    greeting: pick("greeting"),
+    motivation: pick("motivation"),
+    affirmation: pick("affirmation"),
+    productivityTip: pick("productivityTip", "productivity_tip"),
+    gratitudePrompt: pick("gratitudePrompt", "gratitude_prompt"),
+  };
+}
+
 function parseCoachInnerJson(assistantRaw: string | null | undefined):
   | { ok: true; data: CoachEnvelope }
   | { ok: false; error: string; rawSnippet?: string } {
-  try {
-    const inner = assistantRaw?.trim()
-      ? (JSON.parse(assistantRaw.trim()) as unknown)
-      : null;
-    if (!inner || typeof inner !== "object") throw new Error("empty");
-    const o = inner as Record<string, unknown>;
-    const data: CoachEnvelope = {
-      greeting: String(o.greeting ?? ""),
-      motivation: String(o.motivation ?? ""),
-      affirmation: String(o.affirmation ?? ""),
-      productivityTip: String(o.productivityTip ?? ""),
-      gratitudePrompt: String(o.gratitudePrompt ?? ""),
-    };
-    return { ok: true, data };
-  } catch {
+  const raw =
+    assistantRaw?.trim().length ?? 0 ? String(assistantRaw).trim().replace(/^\uFEFF/, "") : "";
+
+  if (!raw) {
+    return { ok: false, error: "Assistant returned empty text.", rawSnippet: assistantRaw?.slice(0, 300) };
+  }
+
+  const inner = tryParseJsonObject(raw);
+  if (!inner || typeof inner !== "object") {
     return {
       ok: false,
       error: "Assistant did not return valid JSON envelope.",
-      rawSnippet: assistantRaw?.slice(0, 300),
+      rawSnippet: raw.slice(0, 300),
     };
   }
+
+  const data = envelopeFromParsedObject(inner as Record<string, unknown>);
+  return { ok: true, data };
 }
 
 function normalizeModelId(model: string): string {
@@ -268,6 +364,8 @@ export async function generateCoachEnvelope(
     /** e.g. `https://generativelanguage.googleapis.com` */
     apiBase?: string;
     model: string;
+    /** IANA TZ from server env (`LUMINA_DISPLAY_TIME_ZONE`) when request omits `timeZone` */
+    displayTimeZone?: string;
   },
 ): Promise<CoachGenerateResult> {
   const start = Date.now();
@@ -276,19 +374,19 @@ export async function generateCoachEnvelope(
     const base = (options.apiBase ?? GEMINI_REST_DEFAULT_BASE).replace(/\/$/, "");
     const modelId = normalizeModelId(options.model);
 
-    const systemPrompt = buildSystemPrompt(body);
+    const displayTimeZone = resolveLuminaDisplayTimeZone({
+      fromRequestBody: body.timeZone,
+      fromServerEnv: options.displayTimeZone,
+    });
+    const systemPrompt = buildSystemPrompt(body, displayTimeZone);
 
     const pn = typeof body.preferredName === "string" ? body.preferredName.trim() : "";
 
     const userLine = [
-      `Local time (use for tone): ${Intl.DateTimeFormat([], {
-        weekday: "long",
-        hour: "numeric",
-        minute: "numeric",
-      }).format(new Date())}.`,
+      `User local clock (timezone ${displayTimeZone} — ONLY source for morning/evening/late wording): ${formatLuminaLocalTimestamp(new Date(), displayTimeZone)}.`,
       `Request id ${randomUUID().slice(0, 8)} — this is a new generation: change the metaphor and rhythm from any prior snapshot; greet differently than last time.`,
       pn
-        ? `Output must stay within the tight word ceilings; include "${pn}" verbatim in every JSON field. Threads: loving encouragement, consolation, life's quiet beauty—they are ENOUGH & worthy of tenderness.`
+        ? `Output must stay within the tight word ceilings; include "${pn}" in greeting, affirmation, productivityTip, and gratitudePrompt; motivation stays you/your only (never spell "${pn}" there again—the system repeats this rule). Threads: gentle encouragement — everyday kindness.`
         : "Output must stay within the tight word ceilings; threads loving encouragement—life holds beauty—they are ENOUGH worthy of tenderness.",
     ].join("\n");
 
@@ -370,6 +468,21 @@ export async function generateCoachEnvelope(
     }
 
     const data = normalizeCoachEnvelope(parsedEnvelope.data, body.preferredName);
+
+    const anyReadable =
+      data.greeting.trim() ||
+      data.motivation.trim() ||
+      data.affirmation.trim() ||
+      data.productivityTip.trim() ||
+      data.gratitudePrompt.trim();
+    if (!anyReadable) {
+      return {
+        ok: false,
+        error: "Gemini returned JSON but every coach field was empty.",
+        latencyMs,
+        raw: assistantRaw.slice(0, 500),
+      };
+    }
 
     return { ok: true, data, latencyMs };
   } catch (e) {

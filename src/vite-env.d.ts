@@ -8,6 +8,8 @@ interface ImportMetaEnv {
   readonly VITE_COACH_API_ORIGIN?: string;
   /** `'1'` or `'true'`: Lumina Voice uses neural TTS (`POST …/api/lumina-tts`) when healthy; falls back to Web Speech otherwise. Requires server-side ElevenLabs key. */
   readonly VITE_LUMINA_USE_ELEVENLABS?: string;
+  /** IANA TZ forwarded on `POST /api/coach` (e.g. Asia/Manila) so Gemini daypart matches deployed audience. */
+  readonly VITE_LUMINA_TIME_ZONE?: string;
 }
 
 interface ImportMeta {

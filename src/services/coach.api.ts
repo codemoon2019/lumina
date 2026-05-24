@@ -45,6 +45,12 @@ export async function fetchCoachAdvice(params: {
     };
     if (preferredNameTrim) body.preferredName = preferredNameTrim;
 
+    const tzBuild =
+      typeof import.meta.env.VITE_LUMINA_TIME_ZONE === "string"
+        ? import.meta.env.VITE_LUMINA_TIME_ZONE.trim().slice(0, 120)
+        : "";
+    if (tzBuild) body.timeZone = tzBuild;
+
     const { data: res } = await axios.post<{
       ok: boolean;
       data?: CoachEnvelope;

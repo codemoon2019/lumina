@@ -15,4 +15,6 @@ export interface CoachRequestBody {
   preferredName?: string;
   /** recently shown snippets — discourage verbatim repeats */
   prior?: string[];
+  /** IANA timezone (e.g. Asia/Manila) — grounds daypart language; overrides server default when valid */
+  timeZone?: string;
 }

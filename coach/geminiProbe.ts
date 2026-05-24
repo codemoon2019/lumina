@@ -121,7 +121,7 @@ export async function resolveGeminiProbeGet(input: {
   if (!apiKeyResolved) {
     return {
       statusCode: 503,
-      json: { ok: false, error: "No GEMINI_API_KEY (override or env) configured." },
+      json: { ok: false, error: "No GEMINI_API_KEY configured on the server." },
     };
   }
 

@@ -74,6 +74,7 @@ Set **`COACH_API_PORT`** if `8788` is taken (`vite.config.ts` preview proxy must
 | Variable | Purpose |
 |----------|---------|
 | `VITE_COACH_API_ORIGIN` | Hosted backend origin (no trailing slash) if SPA and **`/api/coach`**/**`/api/lumina-tts`** differ |
+| `VITE_LUMINA_TIME_ZONE` | IANA TZ inlined into **`POST /api/coach`** (e.g. **`Asia/Manila`**) — grounds “morning / evening / late” without assuming US hours |
 | `VITE_LUMINA_USE_ELEVENLABS` | `'1'` or `'true'` — use neural **`POST /api/lumina-tts`**; otherwise Web Speech only |
 
 ### Server / dev middleware / `coach-api`
@@ -84,6 +85,7 @@ Set **`COACH_API_PORT`** if `8788` is taken (`vite.config.ts` preview proxy must
 | `GEMINI_API_BASE` | Default `https://generativelanguage.googleapis.com` |
 | `GEMINI_MODEL` | Default **`gemini-3.1-flash-lite`** (Flash‑Lite) |
 | `GEMINI_DEBUG_TOKEN` | Optional — when set, **`GET /api/gemini-probe`** requires **`Authorization: Bearer <GEMINI_DEBUG_TOKEN>`** before running a minimal live Gemini request (uses quota). If unset, the endpoint only reports whether a key appears configured (**no Gemini call**) |
+| `LUMINA_DISPLAY_TIME_ZONE` | IANA TZ for coach prompts when **`timeZone`** is omitted (**default in code**: **`Asia/Manila`**; set on Vercel for clarity) |
 | `COACH_API_PORT` | Sidecar (`coach-api`), default **8788** |
 | `ELEVENLABS_API_KEY` | ElevenLabs — **never** use a `VITE_*` prefix; required for **`/api/lumina-tts`** |
 | `ELEVENLABS_VOICE_ID` | Voice preset from ElevenLabs dashboard (`POST /text-to-speech`) |
@@ -106,12 +108,13 @@ This repo ships **`api/ping.ts`** (health), **`api/gemini-probe`** (Gemini debug
 | **`GEMINI_API_KEY`** | Server (`api/coach.ts`) |
 | **`GEMINI_MODEL`**, **`GEMINI_API_BASE`** | Server (optional) |
 | **`GEMINI_DEBUG_TOKEN`** | Server (optional **`GET /api/gemini-probe`** bearer gate — see Env reference) |
+| **`LUMINA_DISPLAY_TIME_ZONE`** | Server (**`api/coach.ts`**) — IANA TZ for daypart when POST omits **`timeZone`** (code default **`Asia/Manila`**) |
 | **`ELEVENLABS_API_KEY`**, **`ELEVENLABS_VOICE_ID`**, **`ELEVENLABS_MODEL`** | Server (`api/lumina-tts.ts`) |
-| **`VITE_*`** (`VITE_LUMINA_USE_ELEVENLABS`, weather, etc.) | **Build** — Vite inlines at compile time |
+| **`VITE_*`** (`VITE_LUMINA_USE_ELEVENLABS`, **`VITE_LUMINA_TIME_ZONE`**, weather, etc.) | **Build** — Vite inlines at compile time |
 
 **Keeping `.env.local` aligned with Vercel:** Copy names and values **as-is** from [`.env.example`](./.env.example) — the dashboard uses **identical** keys (e.g. `GEMINI_API_KEY`, not something else Google shows in their UI). **Do not hardcode secrets** in the repo or in `vite.config`; `GEMINI_*` / `ELEVENLABS_*` must stay in `.env.local` locally and Vercel server env remotely. Optionally run **`vercel link`** then **`vercel env pull .env.local`** so your machine mirrors what is configured in Vercel (combine with `--environment=preview|production|development` as needed).
 
-6. **`VITE_*`** changes → **trigger a redeploy.** Server vars (`GEMINI_*`, `ELEVENLABS_*`) → redeploy too after edits.
+6. **`VITE_*`** changes → **trigger a redeploy.** Server vars (`GEMINI_*`, **`LUMINA_*`**, **`ELEVENLABS_*`**) → redeploy too after edits.
 7. Keep **`VITE_COACH_API_ORIGIN` unset** if API lives on the **same** deployment (usual case).
 
 **Tips:** Use **`VITE_LUMINA_USE_ELEVENLABS` = `1`** (or `true`) with **no stray quotes.** If Gemini errors mention the model name, temporarily **remove `GEMINI_MODEL`** in Vercel and redeploy so the repo default is used.
@@ -130,7 +133,7 @@ If Vercel shows **`FUNCTION_INVOCATION_FAILED`**, open **Deployments → [that d
 
 ## Production (split SPA + API elsewhere)
 
-Deploy **`POST /api/coach`** (same `{ mood?, focus?, prior?[] }` body). Re-implement Gemini by importing [`coach/geminiCoach.ts`](./coach/geminiCoach.ts) (`generateCoachEnvelope`) — same logic as **`api/coach.ts`**.
+Deploy **`POST /api/coach`** (same `{ mood?, focus?, preferredName?, prior?[], timeZone? }` body). Re-implement Gemini by importing [`coach/geminiCoach.ts`](./coach/geminiCoach.ts) (`generateCoachEnvelope`) — same logic as **`api/coach.ts`**.
 
 Also deploy **`POST /api/lumina-tts`** with JSON **`{ text: string }`**, **`Content-Type: audio/mpeg`**, using **`coach/elevenLabsSynthesize.ts`** (pattern in **`api/lumina-tts.ts`**) — the ElevenLabs key stays server-side.
 

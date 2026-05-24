@@ -96,11 +96,25 @@ createServer(async (req, resp) => {
   const parsed = await parseCoachJsonBody(Buffer.concat(chunks));
 
   try {
-    const body = parsed as CoachRequestBody;
+    const o = parsed as Record<string, unknown>;
+    const body: CoachRequestBody = {
+      mood: typeof o.mood === "string" ? o.mood : "",
+      focus: typeof o.focus === "string" ? o.focus : "",
+      preferredName: typeof o.preferredName === "string" ? o.preferredName : undefined,
+      prior: Array.isArray(o.prior)
+        ? o.prior.filter((p): p is string => typeof p === "string")
+        : [],
+      timeZone:
+        typeof o.timeZone === "string" && o.timeZone.trim()
+          ? o.timeZone.trim().slice(0, 120)
+          : undefined,
+    };
+
     const result = await generateCoachEnvelope(body, {
       apiKey: geminiApiKey,
       apiBase: geminiApiBase,
       model: geminiModel,
+      displayTimeZone: process.env.LUMINA_DISPLAY_TIME_ZONE?.trim(),
     });
 
     if (!result.ok) {
