@@ -111,7 +111,7 @@ This repo ships **`api/coach.ts`** and **`api/lumina-tts.ts`** — Vercel runs t
 
 **Tips:** Use **`VITE_LUMINA_USE_ELEVENLABS` = `1`** (or `true`) with **no stray quotes.** If Gemini errors mention the model name, temporarily **remove `GEMINI_MODEL`** in Vercel and redeploy so the repo default is used.
 
-Debugging: Browser **Network → POST …/api/coach**. If response is HTML, routing is wrong. If JSON with **`error`**, read the message (upstream model, quota, missing key).
+**Rare “is env bound?” check:** edit **`api/_ephemeralCredOverride.ts`** — only the **quoted return values there** temporarily override **`GEMINI_*` / `ELEVENLABS_*`** (override wins when non-empty, then **`process.env`**). The committed file stays **blank** by default (`""`). Clear it and redeploy after testing; **rotate any key that ever lived in source**.
 
 Serverless **`api/coach`** and **`api/lumina-tts`** reply with plain **`statusCode` + `setHeader` + `end(...)`** (see **`api/_respond.ts`**) so responses don’t depend on Express-style **`res.json()`** patching on **`VercelResponse`**.
 
@@ -146,7 +146,7 @@ src/
 |---------|-------------|
 | `npm run dev` | Vite + **`/api/coach`** / **`/api/lumina-tts`** middleware (`GEMINI_*`, `ELEVENLABS_*`) |
 | `npm run coach-api` | Sidecar for `vite preview` |
-| `npm run check-env` | Validate `.env.example` vs canonical keys + no server env / key-shaped literals in `src/` |
+| `npm run check-env` | Validate `.env.example` vs canonical keys + hygiene in **`src/`** and **`api/`** (excluding `_ephemeralCredOverride.ts`) |
 | `npm run build` | Runs **`check-env`** then TypeScript + Vite production build |
 | `npm run preview` | Preview static app (run **`coach-api`**) |
 

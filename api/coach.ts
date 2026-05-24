@@ -6,6 +6,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 import { coerceJsonRecord } from "./_coerceBody";
+import { overrideGeminiApiKey } from "./_ephemeralCredOverride";
 import { jsonResponse } from "./_respond";
 import {
   DEFAULT_GEMINI_MODEL,
@@ -21,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const geminiApiKey = process.env.GEMINI_API_KEY?.trim();
+    const geminiApiKey = overrideGeminiApiKey() || process.env.GEMINI_API_KEY?.trim();
     const rawBase = process.env.GEMINI_API_BASE?.trim();
     const geminiApiBase = rawBase ? rawBase.replace(/\/$/, "") : GEMINI_REST_DEFAULT_BASE;
     const geminiModel = process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;

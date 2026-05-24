@@ -6,6 +6,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 import { coerceJsonRecord } from "./_coerceBody";
+import { overrideElevenLabsApiKey, overrideElevenLabsVoiceId } from "./_ephemeralCredOverride";
 import { jsonResponse, sendAudioMpeg } from "./_respond";
 import { synthesizeMp3ViaElevenLabs } from "../coach/elevenLabsSynthesize";
 
@@ -16,8 +17,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY?.trim();
-    const elevenLabsVoiceId = process.env.ELEVENLABS_VOICE_ID?.trim();
+    const elevenLabsApiKey =
+      overrideElevenLabsApiKey() || process.env.ELEVENLABS_API_KEY?.trim();
+    const elevenLabsVoiceId =
+      overrideElevenLabsVoiceId() || process.env.ELEVENLABS_VOICE_ID?.trim();
     const elevenLabsModelId = process.env.ELEVENLABS_MODEL?.trim();
 
     if (!elevenLabsApiKey) {
