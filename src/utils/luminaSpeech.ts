@@ -385,6 +385,52 @@ function luminaTtsUrl(): string {
   return "/api/lumina-tts";
 }
 
+/** Cross-origin relays need cookies when the API host sits behind SSO or session auth (`include` implies CORS + credentials server-side). */
+function luminaTtsCredentials(urlStr: string): RequestCredentials {
+  if (typeof window === "undefined") return "same-origin";
+  try {
+    const isAbsolute = /^https?:\/\//i.test(urlStr);
+    if (!isAbsolute) return "same-origin";
+    const target = new URL(urlStr).origin;
+    return target !== window.location.origin ? "include" : "same-origin";
+  } catch {
+    return "same-origin";
+  }
+}
+
+/** Consumes failed response body and returns something safe for `console.warn` (no guessing secrets). */
+async function summarizeLuminaTtsFailure(res: Response): Promise<string> {
+  const statusLine = `${res.status} ${res.statusText}`.trim();
+  const ct = (res.headers.get("content-type") ?? "").toLowerCase();
+  try {
+    const raw = await res.text();
+
+    if (ct.includes("application/json")) {
+      try {
+        const data = JSON.parse(raw) as { error?: unknown };
+        const msg = typeof data?.error === "string" ? data.error.trim() : "";
+        return msg ? `${statusLine}: ${msg}` : statusLine;
+      } catch {
+        return raw.trim() ? `${statusLine}: ${raw.slice(0, 280)}` : statusLine;
+      }
+    }
+
+    const sniff = raw.trimStart();
+    if (res.status === 401 || sniff.startsWith("<!")) {
+      return `${statusLine}: auth/HTML response (deployment protection / SSO, broken route to index.html, or proxy). Inspect Network → lumina-tts.`;
+    }
+    if (raw.trim()) return `${statusLine}: ${raw.trim().slice(0, 280)}`;
+    return statusLine;
+  } catch {
+    return statusLine;
+  }
+}
+
+function luminaResponseLooksLikeAudioMp3(ct: string): boolean {
+  const h = ct.toLowerCase();
+  return /\baudio\//i.test(h) || /\boctet-stream\b/i.test(h);
+}
+
 function revokeNeuralAudio(): void {
   if (!neuralAudioElement) return;
   try {
@@ -438,15 +484,31 @@ async function playElevenLabsUtterance(fullText: string, epochCaptured: number):
   neuralFetchAbort = ac;
 
   try {
-    const res = await fetch(luminaTtsUrl(), {
+    const url = luminaTtsUrl();
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: trimmed }),
       signal: ac.signal,
+      credentials: luminaTtsCredentials(url),
     });
 
     if (luminaSpeakEpoch !== epochCaptured || ac.signal.aborted) return false;
-    if (!res.ok) return false;
+
+    if (!res.ok) {
+      console.warn("[luminaSpeech] POST /api/lumina-tts failed:", await summarizeLuminaTtsFailure(res));
+      return false;
+    }
+
+    const ctype = res.headers.get("content-type") ?? "";
+    if (!luminaResponseLooksLikeAudioMp3(ctype)) {
+      console.warn(
+        "[luminaSpeech] /api/lumina-tts succeeded but Content-Type was not audio — treating as failure:",
+        ctype || "(missing)",
+        await summarizeLuminaTtsFailure(res),
+      );
+      return false;
+    }
 
     const blob = await res.blob();
     if (luminaSpeakEpoch !== epochCaptured || !blob.size || ac.signal.aborted) return false;
@@ -544,8 +606,13 @@ async function playElevenLabsUtterance(fullText: string, epochCaptured: number):
           reportOnce(false);
         });
     });
-  } catch {
+  } catch (e) {
     revokeNeuralAudio();
+    const aborted =
+      ac.signal.aborted ||
+      (e instanceof DOMException && e.name === "AbortError") ||
+      !!(e && typeof e === "object" && "name" in e && (e as { name?: string }).name === "AbortError");
+    if (!aborted) console.warn("[luminaSpeech] neural TTS fetch error:", e);
     return false;
   } finally {
     neuralFetchAbort = null;
