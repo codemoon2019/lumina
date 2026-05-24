@@ -94,7 +94,7 @@ This repo ships **`api/coach.ts`** and **`api/lumina-tts.ts`** — Vercel runs t
 
 1. Import the repo; Vercel detects **Vite** and runs **`npm run build`** → **`dist`**.
 2. Confirm the deploy picked up **`api/`**: open **Deployments → [latest] → Functions**. You should see **`api/coach`** and **`api/lumina-tts`**. If not, redeploy after pulling the repo that contains `api/` (wrong **Root Directory** in monorepos also hides them).
-3. **`vercel.json`** puts **`handle: filesystem` before** the SPA fallback so **`/api/*`** resolves to Functions instead of returning **`index.html`** (easy to mistake for “API not working”).
+3. **`vercel.json`** SPA rewrite ignores paths under **`/api/*`** (`/((?!api/).*)`) so **`POST /api/coach`** reaches Functions instead of returning **`index.html`**.
 4. **Environment variables** (Project → Settings → Environment Variables). Enable **Production** and **Preview** as appropriate:
 
 | Variable | Applies to |
