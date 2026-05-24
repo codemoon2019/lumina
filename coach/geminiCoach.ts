@@ -271,26 +271,27 @@ export async function generateCoachEnvelope(
   },
 ): Promise<CoachGenerateResult> {
   const start = Date.now();
-  const base = (options.apiBase ?? GEMINI_REST_DEFAULT_BASE).replace(/\/$/, "");
-  const modelId = normalizeModelId(options.model);
-
-  const systemPrompt = buildSystemPrompt(body);
-
-  const pn = typeof body.preferredName === "string" ? body.preferredName.trim() : "";
-
-  const userLine = [
-    `Local time (use for tone): ${Intl.DateTimeFormat([], {
-      weekday: "long",
-      hour: "numeric",
-      minute: "numeric",
-    }).format(new Date())}.`,
-    `Request id ${randomUUID().slice(0, 8)} — this is a new generation: change the metaphor and rhythm from any prior snapshot; greet differently than last time.`,
-    pn
-      ? `Output must stay within the tight word ceilings; include "${pn}" verbatim in every JSON field. Threads: loving encouragement, consolation, life's quiet beauty—they are ENOUGH & worthy of tenderness.`
-      : "Output must stay within the tight word ceilings; threads loving encouragement—life holds beauty—they are ENOUGH worthy of tenderness.",
-  ].join("\n");
 
   try {
+    const base = (options.apiBase ?? GEMINI_REST_DEFAULT_BASE).replace(/\/$/, "");
+    const modelId = normalizeModelId(options.model);
+
+    const systemPrompt = buildSystemPrompt(body);
+
+    const pn = typeof body.preferredName === "string" ? body.preferredName.trim() : "";
+
+    const userLine = [
+      `Local time (use for tone): ${Intl.DateTimeFormat([], {
+        weekday: "long",
+        hour: "numeric",
+        minute: "numeric",
+      }).format(new Date())}.`,
+      `Request id ${randomUUID().slice(0, 8)} — this is a new generation: change the metaphor and rhythm from any prior snapshot; greet differently than last time.`,
+      pn
+        ? `Output must stay within the tight word ceilings; include "${pn}" verbatim in every JSON field. Threads: loving encouragement, consolation, life's quiet beauty—they are ENOUGH & worthy of tenderness.`
+        : "Output must stay within the tight word ceilings; threads loving encouragement—life holds beauty—they are ENOUGH worthy of tenderness.",
+    ].join("\n");
+
     const url = `${base}/v1beta/models/${encodeURIComponent(modelId)}:generateContent`;
 
     const upstream = await fetch(url, {

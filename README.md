@@ -113,6 +113,8 @@ This repo ships **`api/coach.ts`** and **`api/lumina-tts.ts`** — Vercel runs t
 
 Debugging: Browser **Network → POST …/api/coach**. If response is HTML, routing is wrong. If JSON with **`error`**, read the message (upstream model, quota, missing key).
 
+Serverless **`api/coach`** and **`api/lumina-tts`** reply with plain **`statusCode` + `setHeader` + `end(...)`** (see **`api/_respond.ts`**) so responses don’t depend on Express-style **`res.json()`** patching on **`VercelResponse`**.
+
 If Vercel shows **`FUNCTION_INVOCATION_FAILED`**, open **Deployments → [that deploy] → Logs** (Functions) right after reproducing. Handlers return **`500` JSON** with **`error`** plus **`console.error`** tags **`[api/coach]`** / **`[api/lumina-tts]`**. **`vercel.json`** sets **`includeFiles`** so the **`coach/`** folder is bundled with each serverless function. Lumina Voice uses a **minimal REST client** (`fetch`) instead of the official ElevenLabs SDK so the Lambda bundle stays small enough to reliably load.
 
 ## Production (split SPA + API elsewhere)

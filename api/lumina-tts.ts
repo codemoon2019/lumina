@@ -6,12 +6,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 import { coerceJsonRecord } from "./_coerceBody";
+import { jsonResponse, sendAudioMpeg } from "./_respond";
 import { synthesizeMp3ViaElevenLabs } from "../coach/elevenLabsSynthesize";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method !== "POST") {
-      res.status(405).json({ ok: false, error: "Method Not Allowed" });
+      jsonResponse(res, 405, { ok: false, error: "Method Not Allowed" });
       return;
     }
 
@@ -20,7 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const elevenLabsModelId = process.env.ELEVENLABS_MODEL?.trim();
 
     if (!elevenLabsApiKey) {
-      res.status(503).json({
+      jsonResponse(res, 503, {
         ok: false,
         error:
           "Missing ELEVENLABS_API_KEY on the server. Add it in Vercel → Environment Variables (Production / Preview) and redeploy.",
@@ -28,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
     if (!elevenLabsVoiceId) {
-      res.status(503).json({
+      jsonResponse(res, 503, {
         ok: false,
         error: "Missing ELEVENLABS_VOICE_ID on Vercel (your ElevenLabs voice id).",
       });
@@ -37,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const parsed = coerceJsonRecord(req.body);
     if (!parsed) {
-      res.status(400).json({ ok: false, error: "Invalid JSON body" });
+      jsonResponse(res, 400, { ok: false, error: "Invalid JSON body" });
       return;
     }
     const text = typeof parsed.text === "string" ? parsed.text : "";
@@ -50,16 +51,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
 
     if (!result.ok) {
-      res.status(result.status ?? 502).json({ ok: false, error: result.error });
+      jsonResponse(res, result.status ?? 502, { ok: false, error: result.error });
       return;
     }
 
-    res.setHeader("Content-Type", "audio/mpeg");
-    res.setHeader("Cache-Control", "no-store");
-    res.status(200).send(result.mp3);
+    sendAudioMpeg(res, result.mp3);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error("[api/lumina-tts]", msg);
-    res.status(500).json({ ok: false, error: msg || "Internal server error" });
+    console.error("[api/lumina-tts]", e);
+    jsonResponse(res, 500, { ok: false, error: msg || "Internal server error" });
   }
 }

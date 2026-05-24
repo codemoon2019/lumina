@@ -6,6 +6,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 import { coerceJsonRecord } from "./_coerceBody";
+import { jsonResponse } from "./_respond";
 import {
   DEFAULT_GEMINI_MODEL,
   GEMINI_REST_DEFAULT_BASE,
@@ -13,14 +14,10 @@ import {
 } from "../coach/geminiCoach";
 import type { CoachRequestBody } from "../coach/types";
 
-function sendJson(res: VercelResponse, status: number, body: Record<string, unknown>) {
-  res.status(status).json(body);
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method !== "POST") {
-      sendJson(res, 405, { ok: false, error: "Method Not Allowed" });
+      jsonResponse(res, 405, { ok: false, error: "Method Not Allowed" });
       return;
     }
 
@@ -30,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const geminiModel = process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
 
     if (!geminiApiKey) {
-      sendJson(res, 503, {
+      jsonResponse(res, 503, {
         ok: false,
         error:
           "Missing GEMINI_API_KEY on the server. In Vercel: Project Settings → Environment Variables → add GEMINI_API_KEY for Production & Preview (and redeploy).",
@@ -56,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     if (!result.ok) {
-      sendJson(res, result.status ?? 502, {
+      jsonResponse(res, result.status ?? 502, {
         ok: false,
         error: result.error,
         latencyMs: result.latencyMs,
@@ -65,10 +62,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    sendJson(res, 200, { ok: true, data: result.data, latencyMs: result.latencyMs });
+    jsonResponse(res, 200, { ok: true, data: result.data, latencyMs: result.latencyMs });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error("[api/coach]", msg);
-    sendJson(res, 500, { ok: false, error: msg || "Internal server error" });
+    console.error("[api/coach]", e);
+    jsonResponse(res, 500, { ok: false, error: msg || "Internal server error" });
   }
 }
