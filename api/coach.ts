@@ -5,14 +5,14 @@
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-import { coerceJsonRecord } from "./_coerceBody";
-import { overrideGeminiApiKey } from "./_ephemeralCredOverride";
-import { jsonResponse } from "./_respond";
+import { coerceJsonRecord } from "./_coerceBody.js";
+import { overrideGeminiApiKey } from "./_ephemeralCredOverride.js";
+import { jsonResponse } from "./_respond.js";
 import {
   DEFAULT_GEMINI_MODEL,
   GEMINI_REST_DEFAULT_BASE,
   generateCoachEnvelope,
-} from "../coach/geminiCoach";
+} from "../coach/geminiCoach.js";
 import type { CoachRequestBody } from "../coach/types";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

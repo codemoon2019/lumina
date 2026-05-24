@@ -5,10 +5,10 @@
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-import { coerceJsonRecord } from "./_coerceBody";
-import { overrideElevenLabsApiKey, overrideElevenLabsVoiceId } from "./_ephemeralCredOverride";
-import { jsonResponse, sendAudioMpeg } from "./_respond";
-import { synthesizeMp3ViaElevenLabs } from "../coach/elevenLabsSynthesize";
+import { coerceJsonRecord } from "./_coerceBody.js";
+import { overrideElevenLabsApiKey, overrideElevenLabsVoiceId } from "./_ephemeralCredOverride.js";
+import { jsonResponse, sendAudioMpeg } from "./_respond.js";
+import { synthesizeMp3ViaElevenLabs } from "../coach/elevenLabsSynthesize.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
