@@ -159,10 +159,10 @@ export function LuminaFirstMeeting({ onFinish }: LuminaFirstMeetingProps) {
         <motion.div
           animate={speakingEchoBreath.animate}
           transition={speakingEchoBreath.transition}
-          className={`relative z-[1] rounded-[2.25rem] border bg-white/90 px-8 pb-10 pt-14 shadow-soft backdrop-blur-2xl dark:bg-[rgba(14,18,38,0.88)] md:px-10 md:pb-12 md:pt-16 ${
+          className={`lumina-cover-glow relative z-[1] rounded-[2.25rem] px-8 pb-10 pt-14 md:px-10 md:pb-12 md:pt-16 ${
             luminaSpeaking && reduceMotion
-              ? "border-teal-400/48 dark:border-teal-400/32"
-              : "border-violet-200/60 dark:border-white/14"
+              ? "shadow-[0_0_48px_-8px_rgba(45,212,191,0.45)]"
+              : ""
           }`}
         >
         <AnimatePresence mode="wait">

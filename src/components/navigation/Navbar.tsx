@@ -12,7 +12,7 @@ export function Navbar({ toggleTheme, isDark }: NavbarProps) {
       className="relative z-[60] mx-auto mt-5 flex w-full max-w-6xl shrink-0 items-center justify-between gap-4 px-4 pb-1 sm:mt-6 sm:gap-6 sm:px-6 lg:mt-8"
     >
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400/90 via-purple-400/95 to-orange-400/90 text-xs font-semibold uppercase tracking-[0.2em] text-slate-900 shadow-soft ring-2 ring-transparent transition dark:text-slate-950 dark:shadow-[0_0_32px_-4px_rgba(167,139,250,0.55)] dark:ring-white/[0.12] sm:h-10 sm:w-10 sm:rounded-[1.2rem] sm:text-sm">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-400 via-violet-500 to-orange-400 text-sm font-semibold text-slate-950 shadow-[0_8px_24px_-6px_rgba(167,139,250,0.65)] sm:h-11 sm:w-11">
           L
         </div>
         <div>
